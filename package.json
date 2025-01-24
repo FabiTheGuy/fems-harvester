@@ -1,0 +1,12 @@
+{
+  "name": "fems-harvester",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "FabiTheGuy <fabian.doeller@mailfence.com>",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  }
+}
