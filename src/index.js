@@ -1,5 +1,7 @@
 // @ts-check
+import { DataTypes } from 'sequelize';
 import { FemsApiClient } from './fems-api-client.js';
+import { Logger } from './logger.js';
 
 
 // Environment variables
@@ -18,28 +20,39 @@ const LOG_MODULES = process.env.LOG_MODULES || 'grid_power,production_power,batt
 // Static variables
 const femsApiClient = new FemsApiClient(FEMS_HOST, FEMS_PROTOCOL, FEMS_PORT, FEMS_USER, FEMS_PASS);
 const apiEndpointFunctions = new Map([
-    ['system_state', femsApiClient.getSystemState],
-    ['battery_charging_state', femsApiClient.getBatteryChargingState],
-    ['battery_power', femsApiClient.getBatteryPower],
-    ['battery_reactive_power', femsApiClient.getBatteryReactivePower],
-    ['grid_power', femsApiClient.getGridPower],
-    ['grid_min_power', femsApiClient.getGridMinPower],
-    ['grid_max_power', femsApiClient.getGridMaxPower],
-    ['production_power', femsApiClient.getProductionPower],
-    ['production_max_power', femsApiClient.getProductionMaxPower],
-    ['production_ac_power', femsApiClient.getProductionACPower],
-    ['production_dc_power', femsApiClient.getProductionDCPower],
-    ['consumption_power', femsApiClient.getConsumptionPower],
-    ['consumption_max_power', femsApiClient.getCosumptionMaxPower],
+    ['system_state', { fn: femsApiClient.getSystemState, type: DataTypes.INTEGER }],
+    ['battery_charging_state', { fn: femsApiClient.getBatteryChargingState, type: DataTypes.INTEGER }],
+    ['battery_power', { fn: femsApiClient.getBatteryPower, type: DataTypes.INTEGER }],
+    ['battery_reactive_power', { fn: femsApiClient.getBatteryReactivePower, type: DataTypes.INTEGER }],
+    ['grid_power', { fn: femsApiClient.getGridPower, type: DataTypes.INTEGER }],
+    ['grid_min_power', { fn: femsApiClient.getGridMinPower, type: DataTypes.INTEGER }],
+    ['grid_max_power', { fn: femsApiClient.getGridMaxPower, type: DataTypes.INTEGER }],
+    ['production_power', { fn: femsApiClient.getProductionPower, type: DataTypes.INTEGER }],
+    ['production_max_power', { fn: femsApiClient.getProductionMaxPower, type: DataTypes.INTEGER }],
+    ['production_ac_power', { fn: femsApiClient.getProductionACPower, type: DataTypes.INTEGER }],
+    ['production_dc_power', { fn: femsApiClient.getProductionDCPower, type: DataTypes.INTEGER }],
+    ['consumption_power', { fn: femsApiClient.getConsumptionPower, type: DataTypes.INTEGER }],
+    ['consumption_max_power', { fn: femsApiClient.getCosumptionMaxPower, type: DataTypes.INTEGER }],
 ]);
 
 
 async function main() {
-    // Generates a set of functions that will be used according to the LOG_MODULES 
-    // environment variable to harvest data from the FEMS API.
-    const userEndpointFunctions = LOG_MODULES.split(',').map(
-        module => apiEndpointFunctions.get(module)?.bind(femsApiClient)
-    );
+    // Generates an array of modules according to the LOG_MODULES
+    const userModules = LOG_MODULES.split(',').filter(module => {
+        if (apiEndpointFunctions.get(module) === undefined) {
+            Logger.warning(`Module ${module} is not defined!`);
+            return false;
+        }
+        return true;
+    }).map(module => {
+        const moduleObj = apiEndpointFunctions.get(module);
+        return { name: module, fn: moduleObj?.fn, type: moduleObj?.type };
+    });
+
+    // Generates a Model Object for the Database
+    const dbModel = Object.fromEntries(userModules.map(
+        module => [ module.name, module.type ]
+    ));
 }
 
 
