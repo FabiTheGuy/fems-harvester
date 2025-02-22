@@ -2,6 +2,7 @@
 import { DataTypes } from 'sequelize';
 import { FemsApiClient } from './fems-api-client.js';
 import { Logger } from './logger.js';
+import { DatabaseHandler } from './database-handler.js';
 
 
 // Environment variables
@@ -12,13 +13,17 @@ const FEMS_USER = process.env.FEMS_USER || 'x';
 const FEMS_PASS = process.env.FEMS_PASS || 'user';
 const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_PORT = Number(process.env.DB_PORT || '5432');
-const DB_USER = process.env.DB_USER || 'postgres';
-const DB_PASS = process.env.DB_PASS || 'postgres';
+const DB_USER = process.env.DB_USER || 'example';
+const DB_PASS = process.env.DB_PASS || 'example';
+const DB_DB = process.env.DB_DB || 'fems';
+const DB_TABLE = process.env.DB_TABLE || 'data';
 const LOG_INTERVAL = Number(process.env.LOG_INTERVAL || '30');
 const LOG_MODULES = process.env.LOG_MODULES || 'grid_power,production_power,battery_power';
+const DEBUG = Boolean(process.env.DEBUG || false);
 
 // Static variables
 const femsApiClient = new FemsApiClient(FEMS_HOST, FEMS_PROTOCOL, FEMS_PORT, FEMS_USER, FEMS_PASS);
+const dbHandler = new DatabaseHandler(DB_HOST, DB_DB, DB_PORT, DB_USER, DB_PASS);
 const apiEndpointFunctions = new Map([
     ['system_state', { fn: femsApiClient.getSystemState, type: DataTypes.INTEGER }],
     ['battery_charging_state', { fn: femsApiClient.getBatteryChargingState, type: DataTypes.INTEGER }],
@@ -35,8 +40,13 @@ const apiEndpointFunctions = new Map([
     ['consumption_max_power', { fn: femsApiClient.getCosumptionMaxPower, type: DataTypes.INTEGER }],
 ]);
 
+function wait(seconds) {
+    return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
 
 async function main() {
+    Logger.debugEnabled = DEBUG;
+
     // Generates an array of modules according to the LOG_MODULES
     const userModules = LOG_MODULES.split(',').filter(module => {
         if (apiEndpointFunctions.get(module) === undefined) {
@@ -46,13 +56,28 @@ async function main() {
         return true;
     }).map(module => {
         const moduleObj = apiEndpointFunctions.get(module);
-        return { name: module, fn: moduleObj?.fn, type: moduleObj?.type };
+        return { name: module, fn: moduleObj.fn, type: moduleObj.type };
     });
 
     // Generates a Model Object for the Database
     const dbModel = Object.fromEntries(userModules.map(
         module => [ module.name, module.type ]
     ));
+
+    // Re-/Defines a table according to the dbModel
+    await dbHandler.createTable(DB_TABLE, dbModel);
+
+    while (true) {
+        // Creates an Object through the data provided by FEMS
+        const data = Object.fromEntries(
+            await Promise.all(userModules.map(
+                async (module) => [ module.name, await module.fn.bind(femsApiClient)() ]
+            ))
+        );
+
+        dbHandler.insertData(DB_TABLE, data);
+        await wait(LOG_INTERVAL);
+    }
 }
 
 
