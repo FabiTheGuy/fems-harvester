@@ -1,5 +1,7 @@
 // @ts-check
-import { DataTypes, Sequelize } from "sequelize";
+import { DataTypes, Sequelize } from 'sequelize';
+import { Logger } from './logger.js';
+
 
 export class DatabaseHandler {
 
@@ -21,46 +23,38 @@ export class DatabaseHandler {
     }
 
     /**
-     * Checks if a table exists in the database.
-     * 
-     * @param {string} tableName - The name of the table to check.
-     * @returns {Promise<boolean>} - Whether the table exists or not
-     */
-    async #doesTableExists(tableName) {
-        const dbTables = (await this.sequelize.getQueryInterface().showAllTables({ logging: false }));
-
-        return dbTables.includes(tableName);
-    }
-
-    /**
-     * Returns the columns of a table.
-     * 
-     * @param {string} tableName - The name of the table to check.
-     * @returns {Promise<import("sequelize").ColumnsDescription>} - The columns of the table
-     */
-    async #getTableColumns(tableName) {
-        const queryInterface = this.sequelize.getQueryInterface();
-        
-        return await queryInterface.describeTable(tableName, { logging: false });
-    }
-
-    /**
      * Checks if a table with the given name exists and creates it if not.
      * 
      * **Note:** If the table exists, it will be dropped if the columns differ.
      * 
-     * @param {string} tableName - The name of the table to create.
-     * @param {Object} columns - The colums of the table to create.
+     * @param {string} table - The name of the table to create.
+     * @param {Object} model - The colums of the table to create.
      */
-    async createTable(tableName, columns) {
-        if (await this.#doesTableExists(tableName)) {
-            const oldTable = await this.#getTableColumns(tableName);
-            
-            if (JSON.stringify(oldTable) !== JSON.stringify(columns)) {
-                await this.sequelize.getQueryInterface().dropTable(tableName, { logging: false });
+    async createTable(table, model) {
+        const qInterface = this.sequelize.getQueryInterface();
+        const silentArg = { logging: false };
+
+        /* Checks if the table in the Database is equal to the passed
+           model. If not, the table in the DB will be dropped and a 
+           new will be created according to the passed model */
+        if (await qInterface.tableExists(table, silentArg)) {
+            const dbTable = await qInterface.describeTable(table, silentArg);
+            const mistmatches = Object.entries(dbTable).filter(
+                attribute => !(
+                    attribute[0] in model && 
+                    model[attribute[0]]['key'] === attribute[1]['type'] || 
+                    attribute[0] === 'id'
+                )
+            );
+
+        
+            if (mistmatches.length || Object.getOwnPropertyNames(dbTable).length -1 !== Object.getOwnPropertyNames(model).length) {
+                Logger.warning('A new Table Structure was detected, the old table will be dropped');
+                qInterface.dropTable(table, silentArg);
             }
         }
 
+        /* Actual model which will be passed to sequelize */
         const attributes = { 
             id: { 
                 type: DataTypes.DATE, 
@@ -68,26 +62,28 @@ export class DatabaseHandler {
                 primaryKey: true 
             } 
         };
-        
-        for (const [key, value] of Object.entries(columns)) {
+
+        for (const [key, value] of Object.entries(model)) {
             attributes[key] = {
                 type: value,
                 allowNull: false,
             };
         }
         
-        this.sequelize.define(tableName, attributes, { timestamps: false });
-        await this.sequelize.sync({ logging: false });
+        this.sequelize.define(table, attributes, { timestamps: false });
+        await this.sequelize.sync(silentArg);
     }
 
     /**
      * Inserts data into a table.
      * 
-     * @param {string} tableName - Name of the table to insert data into.
+     * @param {string} table - Name of the table to insert data into.
      * @param {Object} data - Data to be insert into the table.
      */
-    async insertData(tableName, data) {
-        await this.sequelize.models[tableName].create(data, { logging: false });
+    async insertData(table, data) {
+        data['id'] = new Date().getTime();
+
+        await this.sequelize.models[table].create(data, { logging: false });
     }
 
 }
