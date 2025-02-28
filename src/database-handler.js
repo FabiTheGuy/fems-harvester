@@ -6,7 +6,7 @@ import { Logger } from './logger.js';
 export class DatabaseHandler {
 
     /**
-     * Cretaes an instance of the DatabaseHandler and connects to the database.
+     * Creates an instance of the DatabaseHandler and connects to the database.
      * 
      * @param {string} host - The host address of the database.
      * @param {string} database - The name of the database.
@@ -15,11 +15,15 @@ export class DatabaseHandler {
      * @param {string} password - The password for the database.
      */
     constructor(host, database, port, username, password) {
-        this.sequelize = new Sequelize(database, username, password, {
-            host: host,
-            port: port,
-            dialect: 'postgres'
-        }); 
+        try {
+            this.sequelize = new Sequelize(database, username, password, {
+                host: host,
+                port: port,
+                dialect: 'postgres'
+            }); 
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
@@ -83,7 +87,11 @@ export class DatabaseHandler {
     async insertData(table, data) {
         data['id'] = new Date().getTime();
 
-        await this.sequelize.models[table].create(data, { logging: false });
+        try {
+            await this.sequelize.models[table].create(data, { logging: false });
+        } catch (error) {
+            Logger.error(`Unable insert data: ${JSON.stringify(data)}`);
+        }
     }
 
 }
