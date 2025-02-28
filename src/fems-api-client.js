@@ -23,6 +23,7 @@ export class FemsApiClient {
      * Makes a request to the FEMS API.
      * 
      * @param {string} endpoint - The endpoint to request.
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<any>} A promise that resolves to the response from the FEMS API.
      */
     async #request(endpoint) {
@@ -35,11 +36,17 @@ export class FemsApiClient {
             }
         });
 
-        if (response.status != 200) {
-            throw new Error(`Request "${endpoint}"`);
+        if (!response.ok) {
+            throw new Error(`Received code: ${response.status}`);
         }
 
-        return await response.json();
+        const json = await response.json();
+
+        if (json === undefined) {
+            throw new Error('Payload is undefined');
+        }
+
+        return json;
     }
 
     /**
@@ -51,20 +58,30 @@ export class FemsApiClient {
      * - 2: Warning
      * - 3: Fault
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current system state.
      */
     async getSystemState() {
-        return (await this.#request('/rest/channel/_sum/State')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/State')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the current battery state of charge in percent.
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current battery 
      *                            state of charge.
      */
     async getBatteryChargingState() {
-        return (await this.#request('/rest/channel/_sum/EssSoc')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/EssSoc')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
@@ -74,19 +91,29 @@ export class FemsApiClient {
      * - **positive** values: the battery is discharging
      * - **negative** values: the battery is charging
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current power
      */
     async getBatteryPower() {      
-        return (await this.#request('/rest/channel/_sum/EssActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/EssActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the current reactive power at the battery in volt-ampere reactive (VAR).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current reactive power.
      */
     async getBatteryReactivePower() {
-        return (await this.#request('/rest/channel/_sum/EssReactivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/EssReactivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
@@ -96,82 +123,127 @@ export class FemsApiClient {
      * - **negative** values: the power is sold to the grid
      * - **positive** values: the power is bought from the grid
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current power.
      */
     async getGridPower() {
-        return (await this.#request('/rest/channel/_sum/GridActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/GridActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the lowest power ever measured at the grid connection in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the lowest power.
      */
     async getGridMinPower() {
-        return (await this.#request('/rest/channel/_sum/GridMinActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/GridMinActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the highest power ever measured at the grid connection in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the highest power.
      */
     async getGridMaxPower() {
-        return (await this.#request('/rest/channel/_sum/GridMaxActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/GridMaxActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the current power which is produced by the photovoltaic system in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current power.
      */
     async getProductionPower() {
-        return (await this.#request('/rest/channel/_sum/ProductionActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/ProductionActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the hightest power ever produced by the photovoltaic system in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the highest power.
      */
     async getProductionMaxPower() {
-        return (await this.#request('/rest/channel/_sum/ProductionMaxActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/ProductionMaxActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the current production power at the AC-Side of the Inverter in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current power.
      */
     async getProductionACPower() {
-        return (await this.#request('/rest/channel/_sum/ProductionAcActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/ProductionAcActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the current production power at the DC-Side of the Inverter in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current power.
      */
     async getProductionDCPower() {
-        return (await this.#request('/rest/channel/_sum/ProductionDcActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/ProductionDcActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the current consumption power in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the current power.
      */
     async getConsumptionPower() {
-        return (await this.#request('/rest/channel/_sum/ConsumptionActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/ConsumptionActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
     /**
      * Returns the highest consumption power ever measured in Watts (W).
      * 
+     * @throws Will throw an error if the response is not OK or the returned content is undefined
      * @returns {Promise<number>} A promise that resolves to the highest power.
      */
     async getCosumptionMaxPower() {
-        return (await this.#request('/rest/channel/_sum/ConsumptionMaxActivePower')).value;
+        try {
+            return (await this.#request('/rest/channel/_sum/ConsumptionMaxActivePower')).value;
+        } catch (error) {
+            throw error;
+        }
     }
 
 }
