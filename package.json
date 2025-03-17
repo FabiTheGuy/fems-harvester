@@ -11,6 +11,9 @@
   "description": "",
   "type": "module",
   "dependencies": {
+    "@types/sequelize": "^4.28.20",
+    "pg": "^8.14.1",
+    "sequelize": "^6.37.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }
